@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Crypto Average Chart</title>
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    body { margin: 0; }
+    #chart { width: 100%; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <script>
+    async function fetchCryptoData(id) {
+      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`);
+      return await res.json();
+    }
+
+    function convertToCandles(ohlcList) {
+      return ohlcList.map(item => ({
+        time: Math.floor(item[0] / 1000),
+        open: item[1],
+        high: item[2],
+        low: item[3],
+        close: item[4]
+      }));
+    }
+
+    async function loadChart() {
+      const [btc, eth, ltc, bch] = await Promise.all([
+        fetchCryptoData('bitcoin'),
+        fetchCryptoData('ethereum'),
+        fetchCryptoData('litecoin'),
+        fetchCryptoData('bitcoin-cash')
+      ]);
+
+      const candles = [];
+      for (let i = 0; i < btc.length; i++) {
+        const time = Math.floor(btc[i][0] / 1000);
+        const open  = (btc[i][1] + eth[i][1] + ltc[i][1] + bch[i][1]) / 4;
+        const high  = (btc[i][2] + eth[i][2] + ltc[i][2] + bch[i][2]) / 4;
+        const low   = (btc[i][3] + eth[i][3] + ltc[i][3] + bch[i][3]) / 4;
+        const close = (btc[i][4] + eth[i][4] + ltc[i][4] + bch[i][4]) / 4;
+        candles.push({ time, open, high, low, close });
+      }
+
+      const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+        layout: { backgroundColor: '#000', textColor: '#fff' },
+        grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+
+      const series = chart.addCandlestickSeries();
+      series.setData(candles);
+    }
+
+    loadChart();
+  </script>
+</body>
+</html>
