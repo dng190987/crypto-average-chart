@@ -1,73 +1,2166 @@
+
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Crypto Average Chart</title>
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-  <style>
-    body { margin: 0; background: #000; color: white; font-family: sans-serif; }
-    #chart { width: 100%; height: 90vh; }
-    #status { padding: 10px; text-align: center; }
-  </style>
-</head>
-<body>
-  <div id="status">⏳ Loading chart data...</div>
-  <div id="chart"></div>
+<html lang="en" id="body-content">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Charts — TradingPoin</title>
+        <link href="https://tradingpoin.com/assets/images/favicon.png" rel="shortcut icon">
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/plugins/klinechart/style.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/plugins/klinechart/main.59f63fb8.chunk.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/plugins/OverlayScrollbars/css/OverlayScrollbars.min.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/jquery.dataTables.min.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/jquery-ui.css">
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/noty.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/jquery.loadingModal.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/responsive.dataTables.min.css"/>
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/select2.css" />
+        <link type="text/css" rel="stylesheet" href="https://tradingpoin.com/assets/css/jquery.datetimepicker.min.css" />
 
-  <script>
-    const symbols = ["BTCUSDT", "ETHUSDT", "LTCUSDT", "BCHUSDT"];
-    const limit = 100;
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery-3.6.0.min.js"></script>
+        <!-- <script type="text/javascript" src="https://tradingpoin.com/assets/js/klinecharts.min.js"></script> -->
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/klinecharts_v8.6.0.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery-ui.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery.dialogOptions.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/dataTables.responsive.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/plugins/OverlayScrollbars/js/OverlayScrollbars.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/noty.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/socket.io.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery.loadingModal.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/html2canvas.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/FileSaver.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/select2.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/slimscroll.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery.datetimepicker.full.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/jquery.form.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/popper.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/tippy-bundle.umd.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/lc_switch.min.js"></script>
 
-    async function fetchKlines(symbol) {
-      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=${limit}`;
-      const res = await fetch(url);
-      return await res.json();
-    }
+        <style>
+            * {box-sizing: border-box}
+            body {
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+                font-size: 14px;
+            }
 
-    async function loadChart() {
-      const status = document.getElementById("status");
-      try {
-        const allData = await Promise.all(symbols.map(s => fetchKlines(s)));
+            /* Style the tab */
+            .tab {
+                float: left;
+                border-right: 1px solid #ddd;
+                /* background-color: #f1f1f1; */
+                width: 60%;
+                /*height: 676px;*/
+            }
 
-        const candles = [];
+            /* Style the buttons inside the tab */
+            .tab button {
+                display: block;
+                background-color: inherit;
+                color: black;
+                padding: 10px;
+                width: 100%;
+                border: none;
+                outline: none;
+                text-align: left;
+                cursor: pointer;
+                transition: 0.3s;
+                font-size: 14px;
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            }
 
-        for (let i = 0; i < limit; i++) {
-          const time = Math.floor(allData[0][i][0] / 1000);
-          let open = 0, high = 0, low = 0, close = 0;
+            /* Change background color of buttons on hover */
+            .tab button:hover {
+              background-color: #f5fafd;
+            }
 
-          for (let d = 0; d < allData.length; d++) {
-            open  += parseFloat(allData[d][i][1]);
-            high  += parseFloat(allData[d][i][2]);
-            low   += parseFloat(allData[d][i][3]);
-            close += parseFloat(allData[d][i][4]);
-          }
+            #technical-indicator-dialog {
+                border-top: 1px solid #ddd;
+                overflow: none !important;
+            }
 
-          candles.push({
-            time,
-            open: open / 4,
-            high: high / 4,
-            low: low / 4,
-            close: close / 4
-          });
-        }
+            .modal-content-list-container li {
+                padding: 5px;
+            }
 
-        status.style.display = "none";
+            .modal-content-list-row-title {
+                padding-top: 13px !important;
+                font-weight: 700 !important;
+                padding-bottom: 10px !important;
+            }
 
-        const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-          layout: { backgroundColor: '#000', textColor: '#fff' },
-          grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
-          width: window.innerWidth,
-          height: window.innerHeight * 0.9
-        });
+            .modal-content-technical-indicator-row-title {
+                width: 90px;
+                float: left;
+                margin-top: 7px;
+            }
 
-        const series = chart.addCandlestickSeries();
-        series.setData(candles);
-      } catch (err) {
-        console.error(err);
-        status.textContent = "❌ Failed to load data.";
-      }
-    }
+            .number-input input {
+                width: 80% !important;
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            }
 
-    loadChart();
-  </script>
-</body>
+            /* Create an active/current "tab button" class */
+            .tab button.active {
+              background-color: #f5fafd;
+            }
+
+            /* Style the tab content */
+            .tabcontent {                
+                float: left;
+                padding: 0px 12px;
+                width: 40%;
+                border-left: none;
+                height: 350px;
+                position: -webkit-sticky; /* Safari */
+                position: sticky;
+                top: 0;
+            }
+            .dot-medium {
+              height: 25px;
+              width: 25px;
+              border: 1px solid #bbb;
+              border-radius: 50%;
+              padding: 1px;
+              padding-left: 0px;
+              display: inline-block;
+            }
+            .dot-success {
+              height: 10px;
+              width: 10px;
+              background-color: #04AA6D;
+              border-radius: 50%;
+              display: inline-block;
+            }
+            .dot-error {
+              height: 10px;
+              width: 10px;
+              background-color: #ff1a1a;
+              border-radius: 50%;
+              display: inline-block;
+            }
+            .dot-neutral {
+              height: 10px;
+              width: 10px;
+              background-color: #dddddd;
+              border-radius: 50%;
+              display: inline-block;
+            }
+            .dot-warning {
+              height: 10px;
+              width: 10px;
+              background-color: orange;
+              border-radius: 50%;
+              display: inline-block;
+            }
+            .dot-neutral-small {
+              height: 5px;
+              width: 5px;
+              background-color: #dddddd;
+              border-radius: 50%;
+              display: inline-block;
+              vertical-align: middle;
+            }
+            table.dataTable.no-footer {
+                border: none;
+            }
+            .dataTables_filter{
+                width: 100%;
+            }
+            .dataTables_filter label input[type=search]{
+                width: 100%;
+                border-bottom: 1px solid #e0e3eb;
+                border-color: #e0e3eb currentcolor;
+                border-top: 1px solid #e0e3eb;
+                border-left: none;
+                border-right: none;
+                border-radius: 0;
+                padding: 10px 17px;
+                margin-left: 0px;
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+            }
+            input:focus,
+            select:focus,
+            textarea:focus,
+            button:focus {
+                outline: none !important;
+            }
+
+            table.dataTable thead th, table.dataTable thead td {
+                border-bottom: none;
+                color: #787b86;
+                font-size: 11px;
+                font-style: normal;
+                font-weight: 400;
+                letter-spacing: .4px;
+                line-height: 16px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                text-transform: uppercase;
+                white-space: nowrap;
+                text-align: left;
+            }
+
+            table.dataTable thead th, table.dataTable thead td {
+                padding: 10px 20px;
+            }
+
+            table.dataTable tbody th, table.dataTable tbody td {
+                padding: 8px 20px;
+                border-bottom: 1px solid #f0f3fa;
+                font-size: 14px;
+                line-height: 25px;
+                margin-right: auto;
+                padding-right: 24px;
+            }
+
+            .dataTables_wrapper.no-footer .dataTables_scrollBody {
+                border-bottom: none;
+            }
+
+            #pair-list-table > tbody > tr:last-child { border:none; }
+
+            .top-bar-light{
+                overflow: auto;
+                white-space: nowrap;
+                overflow-y: hidden !important;
+            }
+            .top-bar-dark{
+                overflow: auto;
+                white-space: nowrap;
+                overflow-y: hidden !important;
+            }
+
+            .ui-dialog .ui-dialog-content {
+                overflow: none !important;
+            }
+
+        </style>
+
+        <style type="text/css">
+            .row>* {
+                flex-shrink: none;
+                width: none;
+                max-width: none;
+                padding-right: 0 !important;
+                padding-left: 0 !important;
+                margin-top: 0 !important;
+            }
+            .tp-home-icon {
+                padding-left: 4px !important;
+            }
+            .tp-split-first {
+                border-right: 4px solid #ddd !important;
+                /*margin-left: 8px !important;*/
+            }
+            .tp-home-icon {
+                width: 45px;
+            }
+            .tp-pair {
+                font-weight: bold !important;
+                color: #000 !important;
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+                /*margin-left: 1px !important;*/
+            }
+            .selected-pair,.selected-pair-value {
+                display: none;
+            }
+            .search-logo-small{
+                width: 18px;
+                height: 18px;
+                margin-top: 3.5px;
+                border-radius: 50%;
+            }
+            .candle_type,#tf {
+                border: none;
+                background: transparent;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                text-indent: 1px;
+                text-overflow: '';
+                outline: none;
+                text-align: center;
+                font-size: 14px;
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+                /*margin-left: 5px;*/
+            }
+            .candle_type:focus {
+              border-color: inherit;
+              -webkit-box-shadow: none;
+              box-shadow: none;
+              outline: none;
+            }
+            .ui-dialog {
+                padding: 0px !important;
+            }
+            .ui-dialog .ui-dialog-titlebar {
+                padding: 17px 20px;
+            }
+            .ui-widget-header {
+                border: none;
+                background: #fff;
+                color: #333333;
+                font-size: 20px;
+                font-weight: 700;
+            }
+            .ui-corner-all, .ui-corner-top, .ui-corner-right, .ui-corner-tr {
+                border-top-right-radius: 6px;
+            }
+            .ui-corner-all, .ui-corner-top, .ui-corner-left, .ui-corner-tl {
+                border-top-left-radius: 6px;
+            }
+            
+            td:nth-child(1) {  
+                font-style: normal;
+                font-weight: 700;
+                color: #2962ff;
+            }
+
+            #add-alert-dialog,#technical-indicator-dialog,#pair-list{
+                display: none;
+            }
+
+
+
+            @media screen and (max-width: 450px) {
+                .chart-widget {
+                    height: 100%;
+                }
+                .tools-ligh {
+                    display: block !important;
+                }
+                .top-bar-light .top-bar-icon-item {
+                    margin-top: 1px !important;
+                }
+                .top-bar-dark .top-bar-icon-item {
+                    margin-top: 1px !important;
+                    color: #929aa5 !important;
+                }
+                .topbar-menu-frame {
+                    margin-left: 5px;
+                    margin-right: 5px;
+                    padding-top: 5px;
+                }
+                .tools-right {
+                    display: none;
+                }
+                .top-bar-light {
+                    padding: 0 !important;
+                    /*margin-left: 46px;*/
+                    padding-left: 1px !important;
+                }
+                .top-bar-dark {
+                    padding: 0 !important;
+                    /*margin-left: 46px;*/
+                    padding-left: 1px !important;
+                }
+                .tp-home-icon-mobile {
+                    position: fixed;
+                    padding: 12px 14.5px !important;
+                    background: #fff;
+                    margin-left: -5px;
+                    border-right: 4px solid #ddd;
+                    padding: 12px !important;
+                    padding-right: 14px !important;
+                    padding-left: 14px !important;
+                    padding: 0 !important;
+                    margin: 0px !important;
+                    margin-left: -1px !important;
+                    height: 38px !important;
+                    width: 51px;
+                    padding-left: 10px !important;
+                }
+                .fix-menu-left-medium {
+                    left: 47px !important;
+                }
+            }
+
+            .tf .select2-container,.candle_type_select .select2-container{
+                font-size: 14px;
+                width: 36px !important;
+                margin: 0px;
+                height: 36.5px;
+            }
+
+            .top-bar-light .top-bar-split-line {
+                margin : 0px;
+                margin-left: 1px;
+                margin-right: 1px;
+            }
+
+            .top-bar-dark .top-bar-split-line {
+                margin : 0px;
+                margin-left: 1px;
+                margin-right: 1px;
+            }
+
+            .tf .select2-container .select2-selection--single .select2-selection__rendered,.candle_type_select .select2-container .select2-selection--single .select2-selection__rendered{
+                display: block;
+                padding-left: 0;
+                padding-right: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                text-align: center;
+                padding-top: 4px;
+            }
+
+            .w150p {
+                margin-top: 1px;
+                width: 150px !important;
+                left: -2.5px;
+            }
+
+            .w50p {
+                margin-top: 1px;
+                width: 58px !important;
+                left: -2.5px;
+            }
+
+            .tf .select2-container .select2-selection--single, .candle_type_select .select2-container .select2-selection--single {
+                border: none !important;
+            }
+
+            .tf .select2-container .select2-selection--single, .candle_type_select .select2-container .select2-selection--single {
+                background-color: none !important;
+            }
+
+            .tf .select2-container .select2-selection--single .select2-selection__arrow, .candle_type_select .select2-container .select2-selection--single .select2-selection__arrow {
+                display: none;
+            }
+
+            .select2-results__option {
+                border-top: 1px solid #ddd;
+            }
+
+            .select2-container .select2-results > .select2-results__options {
+                max-height: 500px;
+            }
+
+            .select2-selection span div div {
+                display: none !important;
+            }
+
+            .select2-container .select2-selection--single .select2-selection__rendered {
+                text-overflow: unset;
+            }
+
+            .indicator-info-table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+
+            .indicator-info-table td, #customers th {
+              border: 1px solid #393a3e;
+              padding: 8px;
+            }
+
+            .indicator-info-table tr:nth-child(even){}
+
+            .indicator-info-table th {
+              padding-top: 12px;
+              padding-bottom: 12px;
+              text-align: left;
+              background-color: #ccc;
+              color: white;
+            }
+
+            .chart_info_long {
+                margin: 0 auto;
+                color:#000;
+                font-size:16px;
+                height: 24px;
+                width: 100%;
+                padding-left:4px;
+                padding-top:2px;
+                /*border:1px solid #fff;*/
+                border-radius:3px;
+                margin:3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .chart_info_long:hover {
+                margin: 0 auto;
+                color:#000;
+                font-size:16px;
+                height: 24px;
+                width: 100%;
+                padding-left:4px;
+                padding-top:2px;
+                /*border:1px solid #ddd;*/
+                border-radius:3px;
+                margin:3px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .top-bar-light .top-bar-icon-item {
+                padding: 0px;
+                border-radius: 0px;
+                height: 36px;
+                margin: 0px;
+            }
+
+            .top-bar-dark .top-bar-icon-item {
+                padding: 0px;
+                border-radius: 2px;
+                height: 34px;
+                margin: 0px;
+                color: #929aa5 !important;
+            }
+
+            .top-bar-dark .top-bar-icon-item:hover {
+                color: #f2f2f2 !important;
+            }
+
+            .topbar-menu-frame {
+                margin-left: 5px;
+                margin-right: 5px;
+                padding-top: 2px;
+            }
+
+            .ui-widget-overlay {
+                background: #9598a1;
+                opacity: .5;
+            }
+
+            .ui-widget.ui-widget-content {
+                box-shadow: 0 2px 4px #0003;
+                padding-bottom: 10px !important;
+            }
+
+            .ui-dialog {
+                border: none !important;
+            }
+
+            .svg-icon path, .svg-icon polygon, .svg-icon rect {
+                fill: #3f424c;
+            }
+
+            .svg-icon {
+                width: 1.5em;
+                height: 1.5em;
+            }
+
+            .tab button {
+                font-size: 14px;
+            }
+
+            .modal-content-list-container li {
+                font-size: 14px;
+            }
+
+            .zoom_nav {
+                /*border: 1px solid red;*/
+                width: 100%;
+                margin: 0;
+                bottom: 0;
+                /*border-radius: 10px;*/
+                height: 100%;
+                /*margin-top: 100px;*/
+                /*vertical-align: bottom;*/
+            }
+
+            .zoom_nav_content {
+                position: fixed;
+                text-align: center;
+                bottom: 40px;
+                width: 100%;
+            }
+
+            .left_logo {
+                /*border: 1px solid red;*/
+                width: 100%;
+                margin: 0;
+                bottom: 0;
+                /*border-radius: 10px;*/
+                height: 100%;
+                /*margin-top: 100px;*/
+                /*vertical-align: bottom;*/
+            }
+
+            .left_logo_content {
+                position: fixed;
+                font-weight: bold;
+                /*text-align: center;*/
+                bottom: 40px;
+                margin-left: 10px;
+                padding: 10px;
+                /*width: 100%;*/
+                background-color: #fff;
+                opacity: 0.9;
+                border-radius:32.5px;  // 100px * 0.65 * 0.5 = 32.5px
+                /*border-radius: 5px;*/
+                border: 1px solid #000;
+            }
+            .left_logo_content a{
+                text-decoration: none;
+                color: #333;
+            }
+
+            .cs-br-left {
+                width: 55.6px;
+                height: 100%;
+                border-left: 4px solid #ddd;
+                border-right: none;
+                margin-top: -78px !important;
+                background: #fff;
+            }
+
+            .top-bar-light {
+                background: #fff;
+                /*font-size: 14px;
+                height: 39px;
+                color: #131722;
+                border-bottom: 1px solid #ddd;*/
+                padding: 0;
+                /*padding-left: 51px;*/
+            }
+
+            .top-bar-dark {
+                /*background: #fff;*/
+                /*font-size: 14px;
+                height: 39px;
+                color: #131722;
+                border-bottom: 1px solid #ddd;*/
+                padding: 0;
+                /*padding-left: 51px;*/
+            }
+
+            .tools-light {
+                /*margin-top: -78px !important;*/
+                background-color: #fff;
+            }
+
+            .tools-dark {
+                /*margin-top: -78px !important;*/
+                /*background-color: #fff;*/
+            }
+
+            ::-webkit-scrollbar {
+                width: 0px !important;
+                height: 0px !important;
+                background: transparent !important; /* make scrollbar transparent */
+            }
+
+            .add-alert-dialog {
+                border-top:1px solid #ddd;padding: 20px;
+                font-size: 13px;
+            }
+
+            .add-alert-dialog-row {
+                width: 100%;float: left;
+                padding-bottom: 10px;
+            }
+
+            .alert-col-1{
+                width:30%;float:left;
+            }
+
+            .alert-col-2{
+                width:70%;float:left;
+            }
+
+            .select2-dropdown {
+                font-size: 13px;
+            }
+
+            input,textarea {
+                border-radius: 2px;
+                padding: 5px;
+                padding-top: 6px;
+                border: 1px solid #ddd;
+                font-family: -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+                font-size: 13px;
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            .button {
+              /*background-color: #4CAF50; //*/
+              border: none;
+              color: white;
+              padding: 7px 15px;
+              text-align: center;
+              text-decoration: none;
+              display: inline-block;
+              font-size: 16px;
+              border-radius: 3px;
+              font-weight: bold;
+            }
+
+            .btn-blue {
+                background-color: #2962ff;
+            }
+            .btn-blue:hover {
+                background-color: #4674f5;
+            }
+
+            .fix-menu-left-medium {
+                width: 260px;
+                /*height: 500px;*/
+                position: fixed;
+                background-color: #fff;
+                z-index: 13;
+                left: 47px;
+                border: 1px solid #ddd;
+                border-top: none;
+                display: none;
+                background-color: #fff;
+                border-radius: 3px;
+                box-shadow: 0 2px 4px #0003;
+                box-sizing: border-box;
+                text-align: left;
+                -webkit-user-select: none;
+                user-select: none;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
+            }
+
+            .fix-menu-left-medium ul li {
+                padding: 10px 20px;
+            }
+            .fix-menu-left-medium ul li a{
+                text-decoration: none;
+                color: #000;
+            }
+            .fix-menu-left-medium ul li:hover {
+                background-color: #f2f2f2;
+            }
+
+            .divider {
+                width: 100%;
+                border-top: 1px solid #ddd;
+            }
+
+            .ic_switch {
+                float: right;
+                margin-top: -2px;
+            }
+
+            .tp-home-icon {
+                width: 51px;
+                height: 42px !important;
+                border: none;
+                margin-top: -4px !important;
+                border-right: 4px solid #ddd;
+                padding: 8px !important;
+                padding-top: 11px !important;
+            }
+
+            .tp-home-icon-mobile {
+                position: fixed;
+                padding: 12px 14.5px !important;
+                background: #fff;
+                margin-left: -5px;
+                border-right: 4px solid #ddd;
+                padding: 12px !important;
+                padding-right: 14px !important;
+                padding-left: 14px !important;
+                padding: 0 !important;
+                margin: 0px !important;
+                margin-left: -1px !important;
+                height: 38px !important;
+                width: 51px;
+                padding-left: 10px !important;
+            }
+
+            .top-bar-dark .top-bar-periods .tp-home-icon {
+                border-right: 1px solid #393a3e;
+                width: 51px;
+            }
+
+            .bg_dark {
+                background-color: #1e2126 !important;
+                color: #929aa5 !important;
+                border: 1px solid #393a3e;
+            }
+
+            .bg_dark .ui-widget-header{
+                background-color: #1e2126 !important;
+                color: #f2f2f2 !important;
+                /*border: 1px solid #222838;*/
+            }
+
+            .bg_dark div div div table tbody tr td {
+                background-color: #1e2126 !important;
+                border-bottom: 1px solid #393a3e;
+            }
+
+            .bg_dark ul li,.bg_dark ul li a {
+                color: #b2b5be;
+            }
+            
+            .bg_dark ul li a:hover {
+                color: #b2b5be;
+            }
+
+            .bg_dark ul li:hover {
+                background-color: #2962ff;
+                /*color: #f2f2f2 !important;*/
+            }
+
+            .bg_dark ul .title-tech-list {
+                background: #3e3e3e;
+                color: #f2f2f2;
+            }
+
+            
+
+            .bg_dark ul .divider {
+                border-top: 1px solid #464646;
+            }
+            .text_dark{
+                color: #929aa5 !important;
+            }
+            .text_dark span span span{
+                color: #929aa5 !important;
+            }
+            .text_dark span span span:hover{
+                color: #f2f2f2 !important;
+            }
+            .bg_dark div div label input {
+                border-top: 1px solid #464646 !important;
+                border-bottom: 1px solid #464646 !important;
+                color: #f2f2f2 !important;
+            }
+
+            .tools-dark {
+                width: 52px;
+                border-right: 4px solid #393a3e;
+            }
+
+            .top-bar-dark .top-bar-periods .tp-home-icon {
+                border-right: 4px solid #393a3e;
+            }
+
+            .ui-dialog:has(> .bg_dark) {
+                background-color: #1e2126 !important;
+            }
+
+            .ui-dialog-titlebar-close {
+                background: none !important;
+            }
+
+            .bg_dark .tab {
+                border-right: 1px solid #393a3e;
+            }
+            .bg_dark .tabcontent ul li:hover{
+                background: none !important;
+            }
+            .bg_dark .tabcontent ul li .number-input input {
+                border: 1px solid #393a3e;
+                color: #f2f2f2;
+            }
+            .bg_dark .tab button {
+                color: #929aa5;
+            }
+            .bg_dark .tab button.active {
+                background-color: #2962ff;
+                color: #f2f2f2;
+            }
+            .bg_dark .tab button:hover {
+                background-color: #2a2e39;
+                color: #929aa5;
+            }
+
+            .bg_dark.ui-widget.ui-widget-content {
+                border: 1px solid #393a3e !important;
+                box-shadow: 60px 60px 60px 60px #0003;
+            }
+
+            #technical-indicator-dialog.bg_dark{
+                border-top: 1px solid #393a3e !important;
+            }
+
+            .bg_dark span .w150p {
+                background-color: #1e2126;
+            }
+
+            .bg_dark span ul li {
+                border-top: 1px solid #393a3e !important;
+            }
+
+            .fix-menu-left-medium.bg_dark{
+                box-shadow: 0 20px 40px #0003;
+            }
+
+            .top-bar-dark .top-bar-periods-small .tp-home-icon-mobile {
+                background-color: #1e2126;
+                border-bottom: 1px solid #393a3e;
+                border-right: 4px solid #393a3e;
+            }
+
+            .title-tech-list {
+                margin-left: -12px;
+                margin-right: -12px;
+                text-align: center;
+                background-color: #f5fafd;
+                color: #3274f0;
+                pointer-events: none;
+            }
+
+            .bg_dark ul .title-tech-list:hover {
+                background: #3e3e3e !important;
+                color: #f2f2f2;
+            }
+
+            .tools-list {
+                width: 47px;
+            }
+
+        </style>
+
+
+            </head>
+
+    <body id="body">
+
+        <div class="fix-menu-left-medium" data-status="hide">
+            <ul>
+                                <li><a href="https://tradingpoin.com/faq">Help center</a></li>
+                <!-- <li>What's new</li> -->
+                <li><a href="https://tradingpoin.com/">Home</a></li>
+                <div class="divider"></div>
+                <li>Dark mode <span class="ic_switch"><input type="checkbox" name="dark_theme" class="cb_dark_theme"></span></li>
+                <li>Drawing panel <span class="ic_switch"><input type="checkbox" name="drawing_panel" checked="" class="cb_drawing_panel"></span></li>
+                <!-- <li>Language</li> -->
+                <div class="divider"></div>
+                                    <li class="sign_in" data-url="https://tradingpoin.com/sign_in">Sign in</li>
+                    <li class="sign_up" data-url="https://tradingpoin.com/sign_up">Sign Up</li>
+                            </ul>
+        </div> 
+
+        <div id="tp-k-line" class="k-line-chart-light">       
+        
+            <div id="tp-k-line-tool" class="top-bar-light">
+                              <div class="top-bar-periods">
+                                <span class="top-bar-icon-item top-bar-item tp-home-icon ic-home-parent" onclick="openclosemenu()">
+                    <svg width="28" height="28" xmlns="http://www.w3.org/2000/svg" class="ic-home"><g fill="currentColor"><path d="M6 7h16a1 1 0 1 1 0 2H6z" class="line-2i7n26LC"></path><path d="M6 13h16a1 1 0 1 1 0 2H6z" class="line-2i7n26LC"></path><path d="M6 19h16a1 1 0 1 1 0 2H6z" class="line-2i7n26LC"></path><path d="M6 9a1 1 0 1 1 0 -2zM6 15a1 1 0 1 1 0 -2zM6 21a1 1 0 1 1 0 -2z"></path></g></svg>
+                </span>
+                                <span class="top-bar-icon-item top-bar-item tp-pair">
+                    <span class="selected-pair-short">CRYIDX</span>
+                    <span class="selected-pair">CRYIDX.B</span>
+                    <span class="selected-pair-value">Z-CRY%2FIDX</span>
+                </span>
+
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item">
+                    <div class="candle_type_select">
+                        <select name="candle_type" class="candle_type rev-select-box" id="candle_type">
+                            <option value="candle_solid" selected data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" fill="currentColor"><path d="M17 11v6h3v-6h-3zm-.5-1h4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5z"></path><path d="M18 7h1v3.5h-1zm0 10.5h1V21h-1z"></path><path d="M9 8v12h3V8H9zm-.5-1h4a.5.5 0 0 1 .5.5v13a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5z"></path><path d="M10 4h1v3.5h-1zm0 16.5h1V24h-1z"></path></svg>'>Solid</option>
+                            <option value="candle_stroke"  data-icon='<span class="iconify" data-icon="carbon:chart-evaluation" data-width="18" data-height="18" style="margin-top:5px;margin-left:5px;"></span>'>Stroke</option>
+                            <option value="candle_up_stroke"  data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" fill="currentColor"><path d="M17 11v6h3v-6h-3zm-.5-1h4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5z"></path><path d="M18 7h1v3.5h-1zm0 10.5h1V21h-1z"></path><path d="M9 8v11h3V8H9zm-.5-1h4a.5.5 0 0 1 .5.5v12a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5z"></path><path d="M10 4h1v5h-1zm0 14h1v5h-1zM8.5 9H10v1H8.5zM11 9h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11z"></path></svg>'>Up stroke</option>
+                            <option value="candle_down_stroke"  data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" fill="currentColor"><path d="M17 11v6h3v-6h-3zm-.5-1h4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5z"></path><path d="M18 7h1v3.5h-1zm0 10.5h1V21h-1z"></path><path d="M9 8v11h3V8H9zm-.5-1h4a.5.5 0 0 1 .5.5v12a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5z"></path><path d="M10 4h1v5h-1zm0 14h1v5h-1zM8.5 9H10v1H8.5zM11 9h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11zm-1 1h1v1h-1zm-1.5 1H10v1H8.5zm2.5 0h1.5v1H11z"></path></svg>'>Down stroke</option>
+                            <option value="ohlc"  data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28"><g fill="none" stroke="currentColor" stroke-linecap="square"><path d="M10.5 7.5v15M7.5 20.5H10M13.5 11.5H11M19.5 6.5v15M16.5 9.5H19M22.5 16.5H20"></path></g></svg>'>OHLC</option>
+                            <option value="area"  data-icon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" fill="currentColor"><path d="M12.5 17.207L18.707 11h2l3.647-3.646-.708-.708L20.293 10h-2L12.5 15.793l-3-3-4.854 4.853.708.708L9.5 14.207z"></path><path d="M9 16h1v1H9zm1 1h1v1h-1zm-1 1h1v1H9zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1H9zm2 0h1v1h-1zm-3-3h1v1H8zm-1 1h1v1H7zm-1 1h1v1H6zm2 0h1v1H8zm-1 1h1v1H7zm-2 0h1v1H5zm17-9h1v1h-1zm1-1h1v1h-1zm0 2h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-5-7h1v1h-1zm2 0h1v1h-1zm1-1h1v1h-1zm-2 2h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-2-6h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-3-3h1v1h-1zm-1 1h1v1h-1zm-1 1h1v1h-1zm2 0h1v1h-1zm-1 1h1v1h-1z"></path></svg>'>Area</option>
+                        </select>
+                    </div>
+                </span>
+
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item false">
+                    <!-- <span class="iconify" data-icon="clarity:alarm-clock-line" data-width="18" data-height="18"></span> -->
+                    <div class="tf">
+                        <select name="tf" id="tf" onchange="_change_tf()">
+                          <option value="5"  disabled>5s</option>
+                          <option value="15" >15s</option>
+                          <option value="30" >30s</option>
+                          <option value="60" selected>1m</option>
+                          <option value="300" >5m</option>
+                          <option value="900" >15m</option>
+                          <option value="1800" >30m</option>
+                          <option value="3600" >1H</option>
+                          <option value="7200" >2H</option>
+                          <option value="14400" >4H</option>
+                          <option value="21600" >6H</option>
+                          <option value="86400" >D</option>
+                          <option value="604800" >W</option>
+                          <option value="2592000" >M</option>
+                        </select>
+                    </div>
+                </span>
+
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item" id="technical-indicator">
+                    <div class="topbar-menu-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28" fill="none"><path stroke="currentColor" d="M6 12l4.8-4.8a1 1 0 0 1 1.4 0l2.7 2.7a1 1 0 0 0 1.3.1L23 5"></path><path fill="currentColor" fill-rule="evenodd" d="M19 12a1 1 0 0 0-1 1v4h-3v-1a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v2H7a1 1 0 0 0-1 1v4h17V13a1 1 0 0 0-1-1h-3zm0 10h3v-9h-3v9zm-1 0v-4h-3v4h3zm-4-4.5V22h-3v-6h3v1.5zM10 22v-3H7v3h3z"></path></svg>
+                    </div>
+                    <div class="topbar-menu-frame" style="margin-left: 0px;margin-right: 10px;">
+                        <label>Indicator</label>
+                    </div>
+                </span>
+
+                <!--<i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item" id="add-alert">
+                    <div class="topbar-menu-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28"><path fill="currentColor" fill-rule="evenodd" d="M8.5 6a3.5 3.5 0 0 0-2.926 5.422 8.527 8.527 0 0 1 4.848-4.848A3.482 3.482 0 0 0 8.5 6zM4 9.5c0 1.19.463 2.274 1.218 3.079A8.5 8.5 0 0 0 13.5 23h.5v-1h-.5a7.5 7.5 0 1 1 7.5-7.5v.5h1v-.5a8.53 8.53 0 0 0-.218-1.921 4.5 4.5 0 0 0-6.36-6.36 8.527 8.527 0 0 0-3.843-.001A4.5 4.5 0 0 0 4 9.5zm12.578-2.926a8.527 8.527 0 0 1 4.848 4.848 3.5 3.5 0 0 0-4.848-4.848zM13 14V9h1v6h-4v-1h3zm6 6h-4v1h4v4h1v-4h4v-1h-4v-4h-1v4z"></path></svg>
+                    </div>
+                    <div class="topbar-menu-frame" style="margin-left: 0px;margin-right: 10px;">
+                        <label>Alert</label>
+                    </div>
+                </span>-->
+
+                
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item" id="take_sceenshoot">
+                    <div class="topbar-menu-frame">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.118 6a.5.5 0 0 0-.447.276L9.809 8H5.5A1.5 1.5 0 0 0 4 9.5v10A1.5 1.5 0 0 0 5.5 21h16a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 21.5 8h-4.309l-.862-1.724A.5.5 0 0 0 15.882 6h-4.764zm-1.342-.17A1.5 1.5 0 0 1 11.118 5h4.764a1.5 1.5 0 0 1 1.342.83L17.809 7H21.5A2.5 2.5 0 0 1 24 9.5v10a2.5 2.5 0 0 1-2.5 2.5h-16A2.5 2.5 0 0 1 3 19.5v-10A2.5 2.5 0 0 1 5.5 7h3.691l.585-1.17z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M13.5 18a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm0 1a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"></path></svg>
+                    </div>    
+                </span>
+
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item" id="fullscreen">
+                  &nbsp;<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" width="28" height="28"><g fill="currentColor"><path d="M21 7v4h1V6h-5v1z"></path><path d="M16.854 11.854l5-5-.708-.708-5 5zM7 7v4H6V6h5v1z"></path><path d="M11.146 11.854l-5-5 .708-.708 5 5zM21 21v-4h1v5h-5v-1z"></path><path d="M16.854 16.146l5 5-.708.708-5-5z"></path><g><path d="M7 21v-4H6v5h5v-1z"></path><path d="M11.146 16.146l-5 5 .708.708 5-5z"></path></g></g></svg>&nbsp;
+                </span>
+
+                
+                <i class="top-bar-split-line"></i>
+                <span class="top-bar-icon-item top-bar-item tp-status">&nbsp;&nbsp;&nbsp;<span class="dot-neutral"></span>&nbsp;&nbsp;&nbsp;</span>
+                
+                <i class="top-bar-split-line"></i>
+
+              </div>
+
+
+                        </div>
+
+            <div class="row stock-chart k-line-chart-container">
+                <div class="col tools-light" id="dw-tools">
+                    <ul class="tools-list">
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('horizontalStraightLine')">
+                                    <g>
+                                        <rect x="1" y="14.5" width="28" height="1"></rect>
+                                        <circle cx="15" cy="15" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('horizontalRayLine')">
+                                    <g>
+                                        <rect x="3" y="14.5" width="26" height="1"></rect>
+                                        <circle cx="3" cy="15" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('horizontalSegment')">
+                                    <g>
+                                        <rect x="3" y="14.5" width="24" height="1"></rect>
+                                        <circle cx="3" cy="15" r="3"></circle>
+                                        <circle cx="27" cy="15" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('verticalStraightLine')">
+                                    <g>
+                                        <rect x="15" y="1" width="1" height="28"></rect>
+                                        <circle cx="15.5" cy="15" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('verticalRayLine')">
+                                    <g>
+                                        <rect x="15" y="1" width="1" height="28"></rect>
+                                        <circle cx="15.5" cy="27" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30"  onclick="drawing('verticalSegment')">
+                                    <g>
+                                        <rect x="15" y="1" width="1" height="28"></rect>
+                                        <circle cx="15.6" cy="3" r="3"></circle>
+                                        <circle cx="15.6" cy="27" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('straightLine')">
+                                    <g>
+                                        <path d="M5 25 L25 5 L26 6 L6 26 Z"></path>
+                                        <circle cx="15" cy="16" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30"  onclick="drawing('rayLine')">
+                                    <g>
+                                        <path d="M5 25 L25 5 L26 6 L6 26 Z"></path>
+                                        <circle cx="7" cy="24" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('segment')">
+                                    <g>
+                                        <path d="M6 24 L24 6 L25 7 7 25 Z"></path>
+                                        <circle cx="6" cy="25" r="3"></circle>
+                                        <circle cx="25" cy="6" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('priceLine')">
+                                    <g>
+                                        <rect x="3" y="19.5" width="26" height="1"></rect>
+                                        <circle cx="3" cy="20" r="3"></circle>
+                                        <rect x="8" y="10" width="1" height="7"></rect>
+                                        <g>
+                                            <rect x="11" y="10" width="3" height="1"></rect>
+                                            <rect x="14" y="10" width="1" height="4"></rect>
+                                            <rect x="11" y="13" width="3" height="1"></rect>
+                                            <rect x="11" y="13" width="1" height="4"></rect>
+                                            <rect x="11" y="16" width="4" height="1"></rect>
+                                        </g>
+                                        <g>
+                                            <rect x="17" y="10" width="3" height="1"></rect>
+                                            <rect x="20" y="10" width="1" height="7"></rect>
+                                            <rect x="17" y="13" width="3" height="1"></rect>
+                                            <rect x="17" y="16" width="4" height="1"></rect>
+                                        </g>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('priceChannelLine')">
+                                    <g>
+                                        <path d="M2 16 L16 2 L17 3 L3 17 Z"></path>
+                                        <circle cx="10" cy="9" r="3"></circle>
+                                        <path d="M5 25 L25 5 L26 6 L6 26 Z"></path>
+                                        <line x1="5" y1="25" x2="25" y2="5"></line>
+                                        <circle cx="11" cy="20" r="3"></circle>
+                                        <circle cx="21" cy="10" r="3"></circle>
+                                        <path d="M14 28 L28 14 L29 15 L15 29 Z"></path>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('parallelStraightLine')">
+                                    <g>
+                                        <path d="M2 22 L22 2 L21 1 L1 21 Z"></path>
+                                        <circle cx="7" cy="16" r="3"></circle>
+                                        <circle cx="16" cy="7" r="3"></circle>
+                                        <path d="M8 28 L28 8 L29 9 L9 29 Z"></path>
+                                        <circle cx="19" cy="18" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 30 30" onclick="drawing('fibonacciLine')">
+                                    <g>
+                                        <rect x="1" y="2.5" width="28" height="1"></rect>
+                                        <circle cx="15" cy="3" r="3"></circle>
+                                        <rect x="1" y="8.5" width="28" height="1"></rect>
+                                        <rect x="1" y="14.5" width="28" height="1"></rect>
+                                        <rect x="1" y="20.5" width="28" height="1"></rect>
+                                        <rect x="1" y="26.5" width="28" height="1"></rect>
+                                        <circle cx="15" cy="27" r="3"></circle>
+                                    </g>
+                                </svg>
+                            </div>
+                        </li>
+                        <li class="tools-list-row tools-list-delete-row" style="display:none;">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg class="tools-list-row-icon" viewBox="0 0 1024 1024">
+                                    <path
+                                        d="M845.12256 287.55456v572.62592c0 15.77984 10.89024 86.44096-15.2576 86.44096H247.7568c-11.74528 0-36.38784 4.56704-37.92384-12.53888-0.90112-10.0352 0-20.57216 0-30.63296V287.55968c0-33.01888-51.2-33.01888-51.2 0v572.62592c0 44.94848-10.20416 99.40992 31.56992 128.94208 15.00672 10.60352 35.80928 8.69888 53.31968 8.69888h531.38432c48.04096 0 121.41568 6.58432 121.41568-63.7952V287.55968c0-33.024-51.2-33.024-51.2-0.00512z"
+                                    ></path>
+                                    <path
+                                        d="M501.86752 420.46976v361.33888c0 33.01376 51.22048 33.01376 51.22048 0V420.46976c0-33.01888-51.22048-33.01888-51.22048 0zM325.35552 420.46976v361.33888c0 33.01376 51.2 33.01376 51.2 0V420.46976c0-33.01888-51.2-33.01888-51.2 0zM676.00384 420.46976v361.33888c0 33.01376 51.2 33.01376 51.2 0V420.46976c0-33.01888-51.2-33.01888-51.2 0zM102.5024 217.5232h849.95584c33.01376 0 33.01376-51.2 0-51.2H102.5024c-33.01888 0-33.01888 51.2 0 51.2z"
+                                    ></path>
+                                    <path
+                                        d="M338.7648 174.82752V94.53056c0-18.37056 1.00864-30.9248 21.6832-30.9248h334.0544c20.67456 0 21.6832 12.55424 21.6832 30.9248v80.29696c0 33.01888 51.2 33.01888 51.2 0 0-54.73792 18.51392-162.42176-65.26464-162.42176H352.82432c-83.77344 0-65.25952 107.68384-65.25952 162.42176 0 33.01888 51.2 33.01888 51.2 0z"
+                                    ></path>
+                                </svg>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="chart-widget">
+                    <div id="k-line-chart" style="width: 100%; height: 100%;/*height: calc(100% - 39px);*/">
+                    </div>
+                </div>
+
+                <div class="col tools-light cs-br-left tools-right" style="display:none;">
+                    <ul class="tools-list">
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path fill="currentcolor" d="M22.5 12a1 1 0 0 1 0 21 1 1 0 0 1 0-21m0 1a1 1 0 0 0 0 19 1 1 0 0 0 0-19m-7.15 16.85l.8.6-2.05 2.75-.8-.6zm13.48.57l.8-.6 2.07 2.78-.8.6zM22 22v-7h1v8h-6v-1zm9.93-2.95l-.58-.81a4 4 0 1 0-5.84-5.2l-.87-.49a5 5 0 1 1 7.3 6.5zm-11.57-6.5l-.87.48a4 4 0 1 0-5.9 5.17l-.6.8a5 5 0 1 1 7.36-6.46z"></path></svg>
+                            </div>
+                        </li>
+                    </ul>
+                    <ul class="tools-list">
+                        <li class="tools-list-row">
+                            <div class="row tools-list-row-icon-wrapper" onclick="alert('Available on next update.')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="45" height="45"><path fill="currentcolor" d="m21.5 10a3.5 3.5 0 0 0-3.5 3.5v3h1v-3a2.5 2.5 0 0 1 2.5-2.5h9a2.5 2.5 0 0 1 2.5 2.5v3a2.5 2.5 0 0 1-2.5 2.5h-1v1h1a3.5 3.5 0 0 0 3.5-3.5v-3a3.5 3.5 0 0 0-3.5-3.5zm-7 6a4.5 4.5 0 0 0-4.5 4.5v13.2l4.7-4.7h10.8a4.5 4.5 0 0 0 4.5-4.5v-4a4.5 4.5 0 0 0-4.5-4.5zm0 1h11a3.5 3.5 0 0 1 3.5 3.5v4a3.5 3.5 0 0 1-3.5 3.5H14.3L11 31.3V20.5a3.5 3.5 0 0 1 3.5-3.5zm15 5v1h1a2.5 2.5 0 0 1 2.5 2.5v8.8L29.7 31h-8.2a2.5 2.5 0 0 1-2.5-2.5h-1a3.5 3.5 0 0 0 3.5 3.5h7.8l4.7 4.7V25.5a3.5 3.5 0 0 0-3.5-3.5z"></path></svg>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                    
+            </div>    
+
+        </div>
+
+        <div id="pair-list" title="Symbol Search">
+            <table class="table" id="pair-list-table">
+              <thead>
+                <tr>
+                                            <th scope="col" width="20%">Symbol</th>
+                        <th scope="col" width="45%" class="for-desktop">Description</th>
+                        <th scope="col" width="35%" style="text-align: right;">Source</th>
+                        
+                </tr>
+              </thead>
+              <tbody>
+                              </tbody>
+            </table>
+        </div>
+
+        <div id="add-alert-dialog" title="Add alert at CRYIDX">
+            <form action="https://tradingpoin.com/api/save_alert" method="POST" class="save_alert">
+            <div class="add-alert-dialog">
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">Condition</div>
+                    <div class="alert-col-2">
+                        <select name="condition1">
+                            <option value="regular">Price</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <select name="condition2">
+                            <option value="greater_than">Greater than</option>
+                            <option value="less_than">Less than</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <div class="alert-col-1">
+                            <select name="isvalue">
+                                <option value="isvalue">Value</option>
+                            </select>
+                        </div>
+                        <div class="alert-col-2">
+                            <input type="number" name="value" id="alert_value">
+                        </div>
+                    </div>
+                </div>
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">Option</div>
+                    <div class="alert-col-2">
+                        <select name="option">
+                            <option value="only_once">Only once</option>
+                            <option value="every_time">Everytime</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">Expiration time</div>
+                    <div class="alert-col-2">
+                        <input type="text" name="expiration_time" class="datetimepicker" value="2025/06/15 13:49">
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <input type="checkbox" id="alert_show_popup" name="alert_show_popup" value="1" checked="">
+                        <label for="vehicle1"> Show popup</label>
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <input type="checkbox" id="alert_send_mail" name="alert_send_mail" value="1">
+                        <label for="vehicle2"> Send email</label>
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <input type="checkbox" id="alert_telegram" name="alert_telegram" value="1">
+                        <label for="vehicle3"> Telegram &nbsp;&nbsp;<input type="text" name="alert_telegram_chat_id" style="width: 50%;" placeholder="Telegram chat id"></label>
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">Name</div>
+                    <div class="alert-col-2">
+                        <input type="text" name="alert_name" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">Message</div>
+                    <div class="alert-col-2">
+                        <textarea name="alert_message" style="width: 100%;height: 120px;max-width: 100%;max-height: 120px;min-width: 100%;min-height: 120px;">CRYIDX Greater than</textarea>
+                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        You can use special placeholders such as [[time]], [[open]], [[close]], [[low]], [[high]].                    </div>
+                </div>
+
+                <div class="add-alert-dialog-row">
+                    <div class="alert-col-1">&nbsp;</div>
+                    <div class="alert-col-2">
+                        <button class="button btn-blue btn-save-indicator" type="submit">Create</button>
+                    </div>
+                </div>
+
+            </div>
+            </form>
+        </div>
+
+        <div id="technical-indicator-dialog" title="Indicator">
+            
+            <div class="tab">
+              <button class="tablinks" onclick="openCity(event, '_ma')" id="defaultOpen"><input type="checkbox" name="_cb_ma" class="tp-cb-ti"> &nbsp;MA (Moving Average)</button>
+              <button class="tablinks" onclick="openCity(event, '_ema')"><input type="checkbox" name="_cb_ema" class="tp-cb-ti"> &nbsp;EMA (Exponential Moving Average)</button>
+              <button class="tablinks" onclick="openCity(event, '_sma')"><input type="checkbox" name="_cb_sma" class="tp-cb-ti"> &nbsp;SMA</button>
+              <button class="tablinks" onclick="openCity(event, '_boll')"><input type="checkbox" name="_cb_boll" class="tp-cb-ti"> &nbsp;BOLL (Bolinger Bands)</button>
+              <button class="tablinks" onclick="openCity(event, '_sar')"><input type="checkbox" name="_cb_sar" class="tp-cb-ti"> &nbsp;SAR (Stop and Reverse)</button>
+              <button class="tablinks" onclick="openCity(event, '_bbi')"><input type="checkbox" name="_cb_bbi" class="tp-cb-ti"> &nbsp;Bull and BearIndex</button>
+
+              <button class="tablinks" onclick="openCity(event, '_vol')"><input type="checkbox" name="_cb_vol" class="tp-cb-ti"> &nbsp;VOL (Volume)</button>
+              <button class="tablinks" onclick="openCity(event, '_macd')"><input type="checkbox" name="_cb_macd" class="tp-cb-ti"> &nbsp;MACD (Moving Average Convergence / Divergence)</button>
+              <button class="tablinks" onclick="openCity(event, '_kdj')"><input type="checkbox" name="_cb_kdj" class="tp-cb-ti"> &nbsp;KDJ (KDJ Index)</button>
+              <button class="tablinks" onclick="openCity(event, '_rsi')"><input type="checkbox" name="_cb_rsi" class="tp-cb-ti"> &nbsp;RSI (Relative Strength Index)</button>
+              <button class="tablinks" onclick="openCity(event, '_bias')"><input type="checkbox" name="_cb_bias" class="tp-cb-ti"> &nbsp;BIAS (Bias Ratio)</button>
+              <button class="tablinks" onclick="openCity(event, '_brar')"><input type="checkbox" name="_cb_brar" class="tp-cb-ti"> &nbsp;BRAR (Sentiment Indicator)</button>
+              <button class="tablinks" onclick="openCity(event, '_cci')"><input type="checkbox" name="_cb_cci" class="tp-cb-ti"> &nbsp;CCI (Indeks Saluran Komoditas)</button>
+              <button class="tablinks" onclick="openCity(event, '_dmi')"><input type="checkbox" name="_cb_dmi" class="tp-cb-ti"> &nbsp;DMI (Directional Movement Index)</button>
+              <button class="tablinks" onclick="openCity(event, '_cr')"><input type="checkbox" name="_cb_cr" class="tp-cb-ti"> &nbsp;CR (Energy Index)</button>
+              <button class="tablinks" onclick="openCity(event, '_psy')"><input type="checkbox" name="_cb_psy" class="tp-cb-ti"> &nbsp;PSY (Psychological Line)</button>
+              <button class="tablinks" onclick="openCity(event, '_dma')"><input type="checkbox" name="_cb_dma" class="tp-cb-ti"> &nbsp;DMA (Different of Moving Average)</button>
+              <button class="tablinks" onclick="openCity(event, '_trix')"><input type="checkbox" name="_cb_trix" class="tp-cb-ti"> &nbsp;TRIX (Triple Exponentially Smoothed Moving Average)</button>
+              <button class="tablinks" onclick="openCity(event, '_obv')"><input type="checkbox" name="_cb_obv" class="tp-cb-ti"> &nbsp;OBV (On Balance Volume)</button>
+              <button class="tablinks" onclick="openCity(event, '_vr')"><input type="checkbox" name="_cb_vr" class="tp-cb-ti"> &nbsp;VR (Volatility Volume Ratio)</button>
+              <button class="tablinks" onclick="openCity(event, '_wr')"><input type="checkbox" name="_cb_wr" class="tp-cb-ti"> &nbsp;WR (Williams %R)</button>
+              <button class="tablinks" onclick="openCity(event, '_mtm')"><input type="checkbox" name="_cb_mtm" class="tp-cb-ti"> &nbsp;MTM (Momentum Index)</button>
+              <button class="tablinks" onclick="openCity(event, '_emv')"><input type="checkbox" name="_cb_emv" class="tp-cb-ti"> &nbsp;EMV (Ease of Movement Value)</button>
+              <button class="tablinks" onclick="openCity(event, '_roc')"><input type="checkbox" name="_cb_roc" class="tp-cb-ti"> &nbsp;ROC (Price Rate of Change)</button>
+              <button class="tablinks" onclick="openCity(event, '_pvt')"><input type="checkbox" name="_cb_pvt" class="tp-cb-ti"> &nbsp;PVT (Price and Volume Trend)</button>
+              <button class="tablinks" onclick="openCity(event, '_avp')"><input type="checkbox" name="_cb_avp" class="tp-cb-ti"> &nbsp;AVT</button>
+              <button class="tablinks" onclick="openCity(event, '_ao')"><input type="checkbox" name="_cb_ao" class="tp-cb-ti"> &nbsp;AO (Osilator Luar Biasa)</button>
+
+                          </div>
+
+            <div id="_ma" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">MA (Moving Average)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ma_val_1" min="0" value="5">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ma_val_2" min="0" value="10">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ma_val_3" min="0" value="">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param4</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ma_val_4" min="0" value="">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_cr" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">CR (Energy Index)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cr_val_1" min="0" value="26">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cr_val_2" min="0" value="10">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cr_val_3" min="0" value="20">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param4</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cr_val_4" min="0" value="40">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param5</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cr_val_4" min="0" value="60">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_ema" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">EMA (Exponential Moving Average)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ema_val_1" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ema_val_2" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ema_val_3" min="0" value="20">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_wr" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">WR (Williams %R)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_wr_val_1" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_wr_val_2" min="0" value="10">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_wr_val_3" min="0" value="14">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_sar" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">SAR (Stop and Reverse)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_sar_val_1" min="0" value="2">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_sar_val_2" min="0" value="2">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_sar_val_3" min="0" value="20">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_vol" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">VOL (Volume)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_val_1" min="0" value="">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_val_2" min="0" value="">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_val_3" min="0" value="">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_dma" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">DMA (Different of Moving Average)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_dma_val_1" min="0" value="10">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_dma_val_2" min="0" value="50">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_dma_val_3" min="0" value="10">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_macd" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">MACD (Moving Average Convergence / Divergence)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_macd_1" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_macd_2" min="0" value="26">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vol_macd_3" min="0" value="9">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_kdj" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">KDJ (KDJ Index)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_kdj_val_1" min="0" value="9">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_kdj_val_2" min="0" value="3">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_kdj_val_3" min="0" value="3">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_rsi" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">RSI (Relative Strength Index)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_rsi_val_1" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_rsi_val_2" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_rsi_val_3" min="0" value="24">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_bias" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">BIAS (Bias Ratio)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bias_val_1" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bias_val_2" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bias_val_3" min="0" value="24">
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_sma" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">SMA</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_sma_val_1" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_sma_val_2" min="0" value="2">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_roc" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">ROC (Price Rate of Change)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_roc_val_1" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_roc_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_ao" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">AO (Osilator Luar Biasa)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ao_val_1" min="0" value="5">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_ao_val_2" min="0" value="34">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_mtm" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">MTM (Momentum Index)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_mtm_val_1" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_mtm_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_emv" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">EMV (Ease of Movement Value)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_emv_val_1" min="0" value="14">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_emv_val_2" min="0" value="9">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_vr" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">VR (Volatility Volume Ratio)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vr_val_1" min="0" value="26">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_vr_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_trix" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">TRIX (Triple Exponentially Smoothed Moving Average)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_trix_val_1" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_trix_val_2" min="0" value="9">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_dmi" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">DMI (Directional Movement Index)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_dmi_val_1" min="0" value="14">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_dmi_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_psy" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">PSY (Psychological Line)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_psy_val_1" min="0" value="14">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_psy_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_boll" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">BOLL (Bolinger Bands)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_boll_val_1" min="0" value="20">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_brar" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">BRAR (Sentiment Indicator)</li>
+                    <li class="modal-content-list-row-title">Param settings</li>
+                    <li>
+                        <span class="modal-content-technical-indicator-row-title">Param1</span>
+                        <div class="number-input modal-content-technical-indicator-row-input">
+                            <input type="number" class="_brar_val_1" min="0" value="26">
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="_pvt" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">PVT (Price and Volume Trend)</li>
+                    <li class="modal-content-list-row-title">Param settings</li>
+                </ul>
+            </div>
+
+            <div id="_tsbnt" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                   <li class="modal-content-list-row-title title-tech-list">BBSignal</li>
+                   <li class="modal-content-list-row-title">
+                    <b>Description : </b>Buy Sell Signal calculated based on overbought and oversold indicator.
+                    <br><br>
+                    <div style="background-color: #ffdb99;padding: 10px;border-radius: 4px;border: 1px solid #a5a5a5;">
+                        <b>Warning : </b>This indicator created by third party. Tradingpoin is not responsible for the impact that may arise from indicators made by this third party.
+                    </div>
+                    </li>
+                   <div style="display: none;">
+                       <li class="modal-content-list-row-title">Param settings</li>
+                       <li>
+                          <span class="modal-content-technical-indicator-row-title">Param1</span>
+                          <div class="number-input modal-content-technical-indicator-row-input">
+                             <input type="number" class="_aio_param_1" min="2" max="100000" value="12" placeholder="Min 2, Max 100000">
+                             
+                          </div>
+                       </li>
+                       <li>
+                          <span class="modal-content-technical-indicator-row-title">Param2</span>
+                          <div class="number-input modal-content-technical-indicator-row-input">
+                             <input type="number" class="_aio_param_2" min="2"  max="100000" value="26" placeholder="Min 2, Max 100000">
+                             
+                          </div>
+                       </li>
+                       <li>
+                          <span class="modal-content-technical-indicator-row-title">Param3</span>
+                          <div class="number-input modal-content-technical-indicator-row-input">
+                             <input type="number" class="_aio_param_3" min="1"  max="100000" value="9" placeholder="Min 2, Max 100000">
+                             
+                          </div>
+                       </li><br>
+                         <p><b>Note :</b><br><br>
+                             &nbsp;&nbsp;Param 1 : Min 2, Max 100000<br>
+                             &nbsp;&nbsp;Param 2 : Min 2, Max 100000<br>
+                             &nbsp;&nbsp;Param 3 : Min 1, Max 100000<br><br>
+                         </p>
+
+                    </div>
+                   <li>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <button class="btn btn-primary" id="apply_aio_signal" style="padding: 7px 10px;
+                            outline: none;
+                            text-decoration: none;
+                            font-size: 15px;
+                            letter-spacing: 0.5px;
+                            transition: all 0.3s;
+                            font-weight: 500;
+                            border-radius: 5px;
+                            background-color: #3274f0 !important;
+                            border: 1px solid #3274f0 !important;
+                            color: #fff !important;
+                            box-shadow: 0 3px 5px 0 rgb(50 116 240 / 30%);">Apply</button>
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_avp" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">AVT</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                </ul>
+            </div>
+
+            <div id="_obv" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">OBV (On Balance Volume)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_obv_val_1" min="0" value="30">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_cci" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">CCI (Indeks Saluran Komoditas)</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_cci_val_1" min="0" value="20">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+            <div id="_bbi" class="tabcontent">
+                <ul class="modal-content-list-container modal-content-technical-indicator-container">
+                    <li class="modal-content-list-row-title title-tech-list">Bull and BearIndex</li>
+                   <li class="modal-content-list-row-title">Param settings</li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param1</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bbi_val_1" min="0" value="3">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param2</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bbi_val_2" min="0" value="6">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param3</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bbi_val_3" min="0" value="12">
+                         
+                      </div>
+                   </li>
+                   <li>
+                      <span class="modal-content-technical-indicator-row-title">Param4</span>
+                      <div class="number-input modal-content-technical-indicator-row-input">
+                         <input type="number" class="_bbi_val_4" min="0" value="24">
+                         
+                      </div>
+                   </li>
+                </ul>
+            </div>
+
+        <div style="display:none;">
+                <img id="source" src="https://tradingpoin.com/assets/images/up.png" width="300" height="227">
+                <img id="source" src="https://tradingpoin.com/assets/images/down.png" width="300" height="227">
+              </div>
+
+        </div>
+
+        
+
+        <script type="text/javascript" src="https://tradingpoin.com/assets/js/iconify.min.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/plugins/klinechart/2.b7611daf.chunk.js"></script>
+        <script type="text/javascript" src="https://tradingpoin.com/assets/plugins/klinechart/main.ce6826c6.chunk.js"></script>
+        <script>
+            document.title = "CRYIDX.B CHART";
+            var candle_type = "candle_solid";
+            var api_url = "https://tradingpoin.com/chart/api/data?type=json";
+            var image_up = "https://tradingpoin.com/assets/images/up.png";
+            var image_down = "https://tradingpoin.com/assets/images/down.png";
+            var tkn = "";
+            var YUhjksdfb786gyu = parseFloat("0");
+            var Ujhhfgmndshvds8 = parseFloat("0");
+            var message_please_upgrade_your_acc = "You have reached the limit, please upgrade your account to enjoy more indicators.";
+            var message_price_to_low = "Sorry, price to low. Chart cannot handle this value, we will notice you if this issue has been solve.";
+            var avail_timeframe_def = "5,15,30,60,300,900,1800,3600,10800,86400,2592000";
+            var default_timeframe_def = "60";
+            var default_pair = "CRYIDX.B";
+            var default_pair_code_short = "CRYIDX";
+            var default_source_def = "Binomo";
+            var default_value_def = "Z-CRY%2FIDX";
+            var default_description = "CRYPTO / IDX";
+            var endpoint = "https://tradingpoin.com:2053";
+
+            var _text_disconnected = "Disconnected";
+            var _text_connected = "Connected";
+            var _text_error = "Error";
+            var _text_symbol_search = "Symbol search";
+            var _text_realtime_data_status = "Realtime data status";
+            var _text_takescreenshoot = "Take screenshoot";
+            var _text_fullscreen = "Fullscreen";
+            var _text_exit_fullscreen = "Exit fullscreen";
+            var _text_market_close = "Market close";
+            var _text_market_open = "Market open";
+            var _text_drawing_tool_only_in_desktop = "Drawing tools only available on desktop version";
+
+            var _technical_indicator = "Technical indicator";
+            var _searchPlaceholder = "Type to search";
+            var _load_charts = "Load charts";
+            var _load_more_history = "Load more history";
+            var _url_search_code = "https://tradingpoin.com/api/search_code?filtersource=";
+            var _url_save_indicator = "https://tradingpoin.com/api/save_indicator";
+            var _url_delete_indicator = "https://tradingpoin.com/api/delete_indicator";
+            var is_mobile = "";
+            var chart_info_long = "CRYPTO / IDX <span class='dot-neutral-small'></span> <span class='tf_label'>1m</span> <span class='dot-neutral-small'></span> BINOMO";
+            var _ywerhjkbjsdfhjg = "174997001730174997017373037";
+            var _text_tf = {
+                "5s" : "[5s_label]",
+                "15s" : "15 seconds",
+                "30s" : "30 seconds",
+                "1m" : "1 menit",
+                "5m" : "5 minutes",
+                "15m" : "15 minutes",
+                "30m" : "30 minutes",
+                "1H" : "1 hour",
+                "2H" : "2 hours",
+                "4H" : "4 hours",
+                "6H" : "6 hours",
+                "D" : "1 day",
+                "W" : "1 minggu",
+                "M" : "1 month",
+            };
+            var _aio_signal_indicator = '';
+            var _aio_signal_indicator_param1 = '';
+            var _aio_signal_indicator_param2 = '';
+            var _aio_signal_indicator_param3 = '';
+
+                    </script>
+        <script>var _url_worker = "https://tradingpoin.com/assets/js/wk.js";</script><script type="text/javascript" src="https://tradingpoin.com/assets/js/bxzjdskafytky7234.js"></script>
+        <!-- Histats.com  START  (aync)-->
+            <script type="text/javascript">var _Hasync= _Hasync|| [];
+            _Hasync.push(['Histats.start', '1,4618206,4,0,0,0,00010000']);
+            _Hasync.push(['Histats.fasi', '1']);
+            _Hasync.push(['Histats.track_hits', '']);
+            (function() {
+            var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+            hs.src = ('//s10.histats.com/js15_as.js');
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+            })();</script>
+            <noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?4618206&101" alt="" border="0"></a></noscript>
+        <!-- Histats.com  END  -->
+
+    </body>
 </html>
